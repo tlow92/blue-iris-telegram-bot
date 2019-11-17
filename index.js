@@ -52,8 +52,7 @@ bot.start((ctx) => {
 saveChatToFile = (chatId) => {
     const fileName = 'chats.json';
     return fs.readFile(fileName).then((res) => {
-        console.log(JSON.parse(res));
-        return fs.readFile(fileName)
+        return JSON.parse(res);
     }).catch((err) => {
         return {
             "chats" : []
@@ -62,15 +61,17 @@ saveChatToFile = (chatId) => {
         if(!current.chats.includes(chatId)) {
             current.chats.push(chatId);
 
-            return fs.writeFile(fileName, JSON.stringify(current)).then(() => {
-                console.log(JSON.stringify(current));
-                console.log('writing to ' + fileName);
-                return true;
-            }).catch((err) => {
-                console.error(err);
-            })
+            return fs.writeFile(fileName, JSON.stringify(current))
+                .then(() => {
+                    console.log(JSON.stringify(current));
+                    console.log('writing to ' + fileName);
+                    return true;
+                }).catch((err) => {
+                    console.error(err);
+                    return false;
+                })
         } else {
-            return(false)
+            return false;
         }
     });
 }
