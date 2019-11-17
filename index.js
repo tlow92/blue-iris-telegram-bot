@@ -138,16 +138,29 @@ makeSnapshotAndReturnPath = (camera) => {
     })
 }
 
-notifyTelegramUsers = (msg) => {
-    const file = require('./chats.json');
-    file.chats.forEach((userId) => {
-        telegram.sendPhoto(userId, msg) 
-    })
+notifyTelegramUsers = (path) => {
+    fs.readFile('chats.json')
+        .then((chats) => {
+            return JSON.parse(chats).chats;
+        }).then((chats) => {
+            axios.request({
+                responseType: 'arraybuffer',
+                url: path,
+                method: 'get',
+                headers: {
+                    'Content-Type': 'image/png',
+                },
+            }).then((photo) => {
+                chats.forEach((userId) => {
+                    telegram.sendPhoto(userId, {source: photo});
+                })
+            })
+        })
 }
 
 server.get('/get-snapshot', (req, res) => {
     return makeSnapshotAndReturnPath(req.query.camera).then((path) => {
-        notifyTelegramUsers(path)
+        notifyTelegramUsers(path);
         return res.send('ok')
     })
 });
