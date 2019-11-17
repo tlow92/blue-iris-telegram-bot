@@ -1,0 +1,41 @@
+{
+  "name": "blue-iris-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot that notifies about alerts from blue iris",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tlow92/blue-iris-telegram-bot.git"
+  },
+  "keywords": [
+    "alert",
+    "bot",
+    "telegram",
+    "blue",
+    "iris",
+    "trigger",
+    "snapshot",
+    "blueiris",
+    "notification",
+    "surveillance",
+    "camera",
+    "web",
+    "request"
+  ],
+  "author": "Thilo Reiner",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tlow92/blue-iris-telegram-bot/issues"
+  },
+  "homepage": "https://github.com/tlow92/blue-iris-telegram-bot#readme",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "telegraf": "^3.33.3"
+  }
+}
