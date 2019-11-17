@@ -152,7 +152,7 @@ notifyTelegramUsers = (path) => {
                 },
             }).then((photo) => {
                 chats.forEach((userId) => {
-                    telegram.sendPhoto(userId, {source: photo});
+                    telegram.sendPhoto(userId, {source: photo.data});
                 })
             })
         })
