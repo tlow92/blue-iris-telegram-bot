@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -7,19 +7,17 @@ const crypto = require('crypto');
 const Telegraf = require('telegraf');
 const Telegram = require('telegraf/telegram');
 
-
-const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = process.env;
-if(!BOT_TOKEN || !BLUE_IRIS_URL || !BLUE_IRIS_USERNAME || !BLUE_IRIS_PASSWORD) {
-    if(!BOT_TOKEN) console.warn('BOT_TOKEN has to be specified.');
-    if(!BLUE_IRIS_URL) console.warn('BLUE_IRIS_URL has to be specified.');
-    if(!BLUE_IRIS_USERNAME) console.warn('BLUE_IRIS_USERNAME has to be specified.');
-    if(!BLUE_IRIS_PASSWORD) console.warn('BLUE_IRIS_PASSWORD has to be specified.');
-    throw Error();
+const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = require('./conf.json');
+if(BOT_TOKEN === '' || BLUE_IRIS_URL === '' || BLUE_IRIS_USERNAME === '' || BLUE_IRIS_PASSWORD === '') {
+    if(BOT_TOKEN === '') console.warn('BOT_TOKEN has to be specified in conf.json.');
+    if(BLUE_IRIS_URL === '') console.warn('BLUE_IRIS_URL has to be specified in conf.json.');
+    if(BLUE_IRIS_USERNAME === '') console.warn('BLUE_IRIS_USERNAME has to be specified in conf.json.');
+    if(BLUE_IRIS_PASSWORD === '') console.warn('BLUE_IRIS_PASSWORD has to be specified in conf.json.');
+    return;
 }
 
 const telegram = new Telegram(BOT_TOKEN);
 const bot = new Telegraf(BOT_TOKEN);
-const allowedUsers = [];
 
 const server = express();
 server.use(bodyParser.urlencoded({
@@ -28,7 +26,6 @@ server.use(bodyParser.urlencoded({
 server.use(bodyParser.json());
 
 let session = '';
-const port = PORT ? PORT : 3000;
 
 // On every text message
 bot.start((ctx) => {
@@ -44,6 +41,8 @@ bot.start((ctx) => {
 
             })
         } else {
+            console.warn(`Following Telegram user is trying to access the bot: ${ctx.from.first_name} - ${userId}`);
+            console.warn(`Add his id: ${userId} to ALLOWED_USER in conf.json file, if you want to allow him.`);
             ctx.reply(`You are not allowed.`);
         }
     });
@@ -51,40 +50,36 @@ bot.start((ctx) => {
 
 
 saveChatToFile = (chatId) => {
-    const fileName = './chats.json';
+    const fileName = 'chats.json';
+    return fs.readFile(fileName).then((res) => {
+        console.log(JSON.parse(res));
+        return fs.readFile(fileName)
+    }).catch((err) => {
+        return {
+            "chats" : []
+        };
+    }).then((current) => {
+        if(!current.chats.includes(chatId)) {
+            current.chats.push(chatId);
 
-    return new Promise((resolve, reject) => {
-        fs.exists(fileName, (exists) => {
-            let file = {
-                "chats" : []
-            }
-            if(exists) file = require(fileName);
-            let newChats = file.chats;
-            if(!newChats.includes(chatId)) {
-                newChats.push(chatId);
-                file.chats = newChats;
-            
-                fs.writeFile(fileName, JSON.stringify(file), function (err) {
-                    if (err) reject(err)
-                    console.log(JSON.stringify(file));
-                    console.log('writing to ' + fileName);
-                    resolve(true)
-                });
-            } else {
-                resolve(false)
-            }
-        })
-    
-    })
+            return fs.writeFile(fileName, JSON.stringify(current)).then(() => {
+                console.log(JSON.stringify(current));
+                console.log('writing to ' + fileName);
+                return true;
+            }).catch((err) => {
+                console.error(err);
+            })
+        } else {
+            return(false)
+        }
+    });
 }
 
 isAllowed = (userId) => {
-    return new Promise((resolve, reject) => {
-        if(allowedUsers.includes(userId.toString())) {
-            resolve(true)
-        }
-        reject(false)
-    })
+    return fs.readFile('conf.json').then((res) => {
+        const { ALLOWED_USER } = JSON.parse(res);
+        return ALLOWED_USER.includes(userId)
+    });
 }
 
 callBI = (req) => {
@@ -157,13 +152,14 @@ server.get('/get-snapshot', (req, res) => {
 });
 
 
-server.listen(port, function () {
-    console.log(`Blue Iris Alert bot listening on port ${port}!`);
-    console.log(`1. contact the bot with /start`);
-    console.log(`2. check this console output for the userId`);
-    console.log(`3. add the userId to the global variable allowedUsers`);
-    console.log(`4. restart this bot`)
-    console.log(`5. Use {ip}:${port}/get-snapshot?camera=$CAM in blue iris alert web request to trigger the telegram bot`);
+server.listen(PORT, function () {
+    console.log(`Blue Iris Alert bot listening on port ${PORT}!`);
+    console.log(`1. enter your settings in conf.json and restart`);
+    console.log(`2. contact the bot with /start`);
+    console.log(`3. check this console output for the userId`);
+    console.log(`4. add the userId to the ALLOWED_USER in conf.json`);
+    console.log(`5. restart this bot`);
+    console.log(`5. Use {ip}:${PORT}/get-snapshot?camera=$CAM in blue iris alert web request to trigger the telegram bot`);
   });
 
 bot.launch()
