@@ -1,14 +1,24 @@
-var fs = require('fs');
-var express = require('express');
-var bodyParser = require('body-parser')
-const axios = require('axios')
-const crypto = require('crypto')
+const fs = require('fs');
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const crypto = require('crypto');
 
-const Telegraf = require('telegraf')
-const Telegram = require('telegraf/telegram')
+const Telegraf = require('telegraf');
+const Telegram = require('telegraf/telegram');
 
-const telegram = new Telegram(process.env.BOT_TOKEN)
-const bot = new Telegraf(process.env.BOT_TOKEN)
+
+const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = process.env;
+if(!BOT_TOKEN || !BLUE_IRIS_URL || !BLUE_IRIS_USERNAME || !BLUE_IRIS_PASSWORD) {
+    if(!BOT_TOKEN) console.warn('BOT_TOKEN has to be specified.');
+    if(!BLUE_IRIS_URL) console.warn('BLUE_IRIS_URL has to be specified.');
+    if(!BLUE_IRIS_USERNAME) console.warn('BLUE_IRIS_USERNAME has to be specified.');
+    if(!BLUE_IRIS_PASSWORD) console.warn('BLUE_IRIS_PASSWORD has to be specified.');
+    throw Error();
+}
+
+const telegram = new Telegram(BOT_TOKEN);
+const bot = new Telegraf(BOT_TOKEN);
 const allowedUsers = [];
 
 const server = express();
@@ -17,11 +27,8 @@ server.use(bodyParser.urlencoded({
 }));
 server.use(bodyParser.json());
 
-let session = ''
-const blueIrisUrl = process.env.BLUE_IRIS_URL;
-const blueIrisUsername = process.env.BLUE_IRIS_USERNAME;
-const blueIrisPassword = process.env.BLUE_IRIS_PASSWORD;
-const port = 3000
+let session = '';
+const port = PORT ? PORT : 3000;
 
 // On every text message
 bot.start((ctx) => {
@@ -84,7 +91,7 @@ callBI = (req) => {
     if(session != '') {
         req.session = session
     }
-    return axios.post(blueIrisUrl+'/json', req)
+    return axios.post(BLUE_IRIS_URL+'/json', req)
 }
 
 makeSnapshotAndReturnPath = (camera) => {
@@ -95,7 +102,7 @@ makeSnapshotAndReturnPath = (camera) => {
         return res.data
     })
     .then((res) => {
-        let hash = crypto.createHash('md5').update(blueIrisUsername+':'+res.session+':'+blueIrisPassword).digest("hex")
+        let hash = crypto.createHash('md5').update(BLUE_IRIS_USERNAME + ':' + res.session + ':' + BLUE_IRIS_PASSWORD).digest("hex")
     
         return callBI({
             cmd:"login",
@@ -106,7 +113,7 @@ makeSnapshotAndReturnPath = (camera) => {
     .then((res) => {
         session = res.data.session;
         if(res.data.result === 'success') {
-            return axios.get(blueIrisUrl+'/cam/'+camera+'/pos=100?session='+session)
+            return axios.get(BLUE_IRIS_URL + '/cam/' + camera + '/pos=100?session=' + session)
             .then((res) => {
                 if(res.data.includes("<body>Ok</body>")){
                     return new Promise((resolve, reject) => {
@@ -117,7 +124,7 @@ makeSnapshotAndReturnPath = (camera) => {
                                 let tmp = res.data.data.find((el) => {
                                     return el.filesize.includes("Snapshot")
                                 })
-                                resolve((blueIrisUrl+'/clips/'+tmp.path+'?session='+session))
+                                resolve((BLUE_IRIS_URL + '/clips/' + tmp.path + '?session=' + session))
                             })
                         }, 250)
                     })
@@ -136,7 +143,7 @@ makeSnapshotAndReturnPath = (camera) => {
 }
 
 notifyTelegramUsers = (msg) => {
-    var file = require('./chats.json');
+    const file = require('./chats.json');
     file.chats.forEach((userId) => {
         telegram.sendPhoto(userId, msg) 
     })
