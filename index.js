@@ -119,17 +119,22 @@ makeSnapshotAndReturnPath = (camera) => {
                             }).then((res) => {
                                 let tmp = res.data.data.find((el) => {
                                     return el.filesize.includes("Snapshot")
-                                })
-                                resolve((BLUE_IRIS_URL + '/clips/' + tmp.path + '?session=' + session))
+                                });
+                                console.log('resolving promise for clip')
+                                resolve(BLUE_IRIS_URL + '/clips/' + tmp.path + '?session=' + session);
                             })
                         }, 250)
                     })
                 } else {
+                    console.log('error when doing snapshot');
+                    console.log(res.data);
                     throw Error()
                 }
             })
         } else {
-            throw Error
+            console.log('error when logging into');
+            console.log(res.data);
+            throw Error()
         }
     })
     .catch((error) => {
@@ -154,6 +159,9 @@ notifyTelegramUsers = (path) => {
                 chats.forEach((userId) => {
                     telegram.sendPhoto(userId, {source: photo.data});
                 })
+            }).catch((err) => {
+                console.log('error when trying to download picture')
+                console.log(err)
             })
         })
 }
