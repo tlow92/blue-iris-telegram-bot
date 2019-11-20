@@ -167,6 +167,7 @@ notifyTelegramUsers = (path) => {
 }
 
 server.get('/get-snapshot', (req, res) => {
+    session = '';
     return makeSnapshotAndReturnPath(req.query.camera).then((path) => {
         notifyTelegramUsers(path);
         return res.send('ok')
