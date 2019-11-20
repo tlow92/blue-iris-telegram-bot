@@ -84,7 +84,7 @@ isAllowed = (userId) => {
 }
 
 callBI = (req) => {
-    if(session != '') {
+    if(session !== '') {
         req.session = session
     }
     return axios.post(BLUE_IRIS_URL+'/json', req)
