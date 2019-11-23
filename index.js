@@ -221,21 +221,16 @@ sendTelegramGif = (path) => {
 
 server.get('/snapshot', (req, res) => {
     if(req.query.camera) {
-        return getSnapshotAndReturnPath(req.query.camera).then((path) => {
-            sendTelegramSnapshot(path);
-            return res.send('ok')
-        })
-    } else {
-        return res.send('params missing')
-    }
-});
+      const snapshot = getSnapshotAndReturnPath(req.query.camera).then((path) => {
+        sendTelegramSnapshot(path);
+      })
+      const gif = makeGifFromStreamAndReturnPath(req.query.camera).then((path) => {
+        sendTelegramGif(path);
+      });
 
-server.get('/gif', (req, res) => {
-    if(req.query.camera) {
-        makeGifFromStreamAndReturnPath(req.query.camera).then((path) => {
-            sendTelegramGif(path);
-            return res.send('ok')
-        });
+      return Promise.all([snapshot, gif]).then(() => {
+        return res.send('ok')
+      })
     } else {
         return res.send('params missing')
     }
