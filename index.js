@@ -196,7 +196,7 @@ getSnapshotAndReturnPath = (camera) => {
 sendTelegramSnapshot = (path) => {
     fs.readFile('chats.json')
         .then((chats) => {
-            return JSON.parse(chats).chats;
+            return JSON.parse(chats);
         }).then((chats) => {
             fs.readFile(path).then((photo) => {
                 chats.snapshot.forEach((userId) => {
@@ -209,7 +209,7 @@ sendTelegramSnapshot = (path) => {
 sendTelegramGif = (path) => {
     fs.readFile('chats.json')
       .then((chats) => {
-          return JSON.parse(chats).chats;
+          return JSON.parse(chats);
       }).then((chats) => {
         fs.readFile(path).then((photo) => {
             chats.gif.forEach((userId) => {
