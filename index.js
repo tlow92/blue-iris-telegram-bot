@@ -199,7 +199,7 @@ sendTelegramSnapshot = (path) => {
             return JSON.parse(chats).chats;
         }).then((chats) => {
             fs.readFile(path).then((photo) => {
-                chats.forEach((userId) => {
+                chats.snapshot.forEach((userId) => {
                     telegram.sendPhoto(userId, {source: photo});
                 })
             })
@@ -212,7 +212,7 @@ sendTelegramGif = (path) => {
           return JSON.parse(chats).chats;
       }).then((chats) => {
         fs.readFile(path).then((photo) => {
-            chats.forEach((userId) => {
+            chats.gif.forEach((userId) => {
                 telegram.sendAnimation(userId, {source: photo});
             })
         })
