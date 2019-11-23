@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const crypto = require('crypto');
+const ffmpeg = require('fluent-ffmpeg');
 
 const Telegraf = require('telegraf');
 const Telegram = require('telegraf/telegram');
@@ -25,155 +26,220 @@ server.use(bodyParser.urlencoded({
 }));
 server.use(bodyParser.json());
 
-let session = '';
+let globalSession = '';
 
 // On every text message
 bot.start((ctx) => {
-    const userId = ctx.from.id;
-    isAllowed(userId).then((allowed) => {
-        if(allowed) {
-            saveChatToFile(userId)
-            .then((alreadyRegistered) => {
-                if(alreadyRegistered) ctx.reply(`You are now registered for updates.`);
-                else ctx.reply(`You are already registered.`);
-            })
-            .catch(() => {
-
-            })
-        } else {
-            console.warn(`Following Telegram user is trying to access the bot: ${ctx.from.first_name} - ${userId}`);
-            console.warn(`Add his id: ${userId} to ALLOWED_USER in conf.json file, if you want to allow him.`);
-            ctx.reply(`You are not allowed.`);
-        }
-    });
+    ctx.reply('Use /snapshot or /gif to opt in for alerts.');
 });
 
+bot.command('snapshot', (ctx) => {
+    optIn(ctx.from.id, 'snapshot').then((state) => {
+        if(state) ctx.reply('You are now getting snapshot on alerts.')
+        else ctx.reply('You are not receiving snapshot anymore.')
+    }).catch((err) => {
+        console.log(err)
+        console.warn(`Following Telegram user is trying to access the bot: ${ctx.from.first_name} - ${ctx.from.id}`);
+        console.warn(`Add his id: ${ctx.from.id} to ALLOWED_USER in conf.json file, if you want to allow him.`);
+        ctx.reply(`You are not allowed.`);
+    })
+});
 
-saveChatToFile = (chatId) => {
+bot.command('gif', (ctx) => {
+    optIn(ctx.from.id, 'gif').then((state) => {
+        if(state) ctx.reply('You are now getting gifs on alerts.')
+        else ctx.reply('You are not receiving gifs anymore.')
+    }).catch((err) => {
+        console.log(err)
+        console.warn(`Following Telegram user is trying to access the bot: ${ctx.from.first_name} - ${ctx.from.id}`);
+        console.warn(`Add his id: ${ctx.from.id} to ALLOWED_USER in conf.json file, if you want to allow him.`);
+        ctx.reply(`You are not allowed.`);
+    })
+});
+
+optIn = (userId, type) => {
+    return isAllowed(userId).then((allowed) => {
+        if(allowed) {
+            return saveChatToFile(userId, type)
+        } else {
+            throw new Error();
+        }
+    });
+}
+
+saveChatToFile = (chatId, type) => {
     const fileName = 'chats.json';
     return fs.readFile(fileName).then((res) => {
         return JSON.parse(res);
     }).catch((err) => {
         return {
-            "chats" : []
+            'gif': [],
+            'snapshot': []
         };
     }).then((current) => {
-        if(!current.chats.includes(chatId)) {
-            current.chats.push(chatId);
-
-            return fs.writeFile(fileName, JSON.stringify(current))
-                .then(() => {
-                    console.log(JSON.stringify(current));
-                    console.log('writing to ' + fileName);
-                    return true;
-                }).catch((err) => {
-                    console.error(err);
-                    return false;
-                })
+        let result;
+        if(!current[type].includes(chatId)) {
+            current[type].push(chatId);
+            result = true;
         } else {
-            return false;
+            current[type] = current[type].filter((id) => (id !== chatId));
+            result = false;
         }
+        return fs.writeFile(fileName, JSON.stringify(current))
+          .then(() => {
+              console.log(JSON.stringify(current));
+              console.log('writing to ' + fileName);
+              return result;
+          }).catch((err) => {
+              console.log(err)
+              throw new Error();
+          })
     });
-}
+};
 
 isAllowed = (userId) => {
     return fs.readFile('conf.json').then((res) => {
         const { ALLOWED_USER } = JSON.parse(res);
         return ALLOWED_USER.includes(userId)
     });
-}
+};
 
 callBI = (req) => {
-    if(session !== '') {
-        req.session = session
+    if(globalSession !== '') {
+        req.session = globalSession
     }
     return axios.post(BLUE_IRIS_URL+'/json', req)
-}
+};
 
-makeSnapshotAndReturnPath = (camera) => {
+login = () => {
+    globalSession = '';
     return callBI({
         cmd:"login"
     })
-    .then((res) => {
-        return res.data
+      .then((res) => {
+          return res.data.session
+      })
+      .then((session) => {
+          let hash = crypto.createHash('md5').update(BLUE_IRIS_USERNAME + ':' + session + ':' + BLUE_IRIS_PASSWORD).digest("hex")
+          globalSession = session;
+          return callBI({
+              cmd:"login",
+              response: hash
+          })
+      })
+}
+
+const downloadImage = async (name, url) => {
+    return await axios.request({
+        responseType: 'arraybuffer',
+        url: url,
+        method: 'get',
+        headers: {
+            'Content-Type': 'image/png',
+        },
+    }).then(async (res) => {
+        return await fs.writeFile(name, res.data).then(async () => {
+            return await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve(true)
+                }, 500);
+            });
+        });
+    }).catch(async (err) => {
+        return false;
     })
+};
+
+makeGifFromStreamAndReturnPath = async (camera) => {
+    function sequence(tasks) {
+        return tasks.reduce((promise, task) => promise.then(() => downloadImage(task.name, task.url)), Promise.resolve());
+    }
+
+    return login().then(async () => {
+        const url = `${BLUE_IRIS_URL}/image/${camera}/?session=${globalSession}`;
+
+        return await fs.mkdir('images').then(async () => {}).catch(async () => {}).then(async () => {
+            let promises = [];
+
+            for(let i = 0; i < 10; i++) {
+                promises.push({name: 'images/image_'+i+'.jpg', url: url});
+            }
+
+            return await sequence(promises)
+        });
+    }).then(() => {
+        const animation = './images/test.mp4';
+        ffmpeg('./images/image_%d.jpg')
+          .save(animation).run();
+
+        return animation;
+    });
+}
+
+getSnapshotAndReturnPath = (camera) => {
+    return login()
     .then((res) => {
-        let hash = crypto.createHash('md5').update(BLUE_IRIS_USERNAME + ':' + res.session + ':' + BLUE_IRIS_PASSWORD).digest("hex")
-    
-        return callBI({
-            cmd:"login",
-            session: res.session,
-            response: hash
-        })
-    })
-    .then((res) => {
-        session = res.data.session;
         if(res.data.result === 'success') {
-            return axios.get(BLUE_IRIS_URL + '/cam/' + camera + '/pos=100?session=' + session)
-            .then((res) => {
-                if(res.data.includes("<body>Ok</body>")){
-                    return new Promise((resolve, reject) => {
-                        setTimeout(() => {
-                            return callBI({
-                                "cmd":"cliplist","camera":"Index"
-                            }).then((res) => {
-                                let tmp = res.data.data.find((el) => {
-                                    return el.filesize.includes("Snapshot")
-                                });
-                                console.log('resolving promise for clip')
-                                resolve(BLUE_IRIS_URL + '/clips/' + tmp.path + '?session=' + session);
-                            })
-                        }, 250)
-                    })
-                } else {
-                    console.log('error when doing snapshot');
-                    console.log(res.data);
-                    throw Error()
-                }
+            const url = `${BLUE_IRIS_URL}/image/${camera}/?session=${globalSession}`;
+            return downloadImage('snapshot.jpg', url).then(() => {
+                return 'snapshot.jpg'
             })
         } else {
-            console.log('error when logging into');
-            console.log(res.data);
             throw Error()
         }
     })
     .catch((error) => {
-        console.log(error)
         return error
     })
 }
 
-notifyTelegramUsers = (path) => {
+sendTelegramSnapshot = (path) => {
     fs.readFile('chats.json')
         .then((chats) => {
             return JSON.parse(chats).chats;
         }).then((chats) => {
-            axios.request({
-                responseType: 'arraybuffer',
-                url: path,
-                method: 'get',
-                headers: {
-                    'Content-Type': 'image/png',
-                },
-            }).then((photo) => {
+            fs.readFile(path).then((photo) => {
                 chats.forEach((userId) => {
-                    telegram.sendPhoto(userId, {source: photo.data});
+                    telegram.sendPhoto(userId, {source: photo});
                 })
-            }).catch((err) => {
-                console.log('error when trying to download picture')
-                console.log(err)
             })
         })
 }
 
-server.get('/get-snapshot', (req, res) => {
-    session = '';
-    return makeSnapshotAndReturnPath(req.query.camera).then((path) => {
-        notifyTelegramUsers(path);
-        return res.send('ok')
+sendTelegramGif = (path) => {
+    fs.readFile('chats.json')
+      .then((chats) => {
+          return JSON.parse(chats).chats;
+      }).then((chats) => {
+        fs.readFile(path).then((photo) => {
+            chats.forEach((userId) => {
+                telegram.sendAnimation(userId, {source: photo});
+            })
+        })
     })
+}
+
+server.get('/snapshot', (req, res) => {
+    if(req.query.camera) {
+        return getSnapshotAndReturnPath(req.query.camera).then((path) => {
+            sendTelegramSnapshot(path);
+            return res.send('ok')
+        })
+    } else {
+        return res.send('params missing')
+    }
 });
 
+server.get('/gif', (req, res) => {
+    if(req.query.camera) {
+        makeGifFromStreamAndReturnPath(req.query.camera).then((path) => {
+            sendTelegramGif(path);
+            return res.send('ok')
+        });
+    } else {
+        return res.send('params missing')
+    }
+});
 
 server.listen(PORT, function () {
     console.log(`Blue Iris Alert bot listening on port ${PORT}!`);
@@ -182,8 +248,9 @@ server.listen(PORT, function () {
     console.log(`3. check this console output for the userId`);
     console.log(`4. add the userId to the ALLOWED_USER in conf.json`);
     console.log(`5. restart this bot`);
-    console.log(`5. Use {ip}:${PORT}/get-snapshot?camera=$CAM in blue iris alert web request to trigger the telegram bot`);
+    console.log(`5. Use {ip}:${PORT}/snapshot?camera=$CAM in blue iris alert web request to get a snapshot`);
+    console.log(`5. Use {ip}:${PORT}/gif?camera=$CAM in blue iris alert web request to get a gif`);
   });
 
-bot.launch()
+bot.launch();
 
