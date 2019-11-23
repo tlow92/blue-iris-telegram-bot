@@ -8,7 +8,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const Telegraf = require('telegraf');
 const Telegram = require('telegraf/telegram');
 
-const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = require('conf.json');
+const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = require('./conf.json');
 if(BOT_TOKEN === '' || BLUE_IRIS_URL === '' || BLUE_IRIS_USERNAME === '' || BLUE_IRIS_PASSWORD === '') {
     if(BOT_TOKEN === '') console.warn('BOT_TOKEN has to be specified in conf.json.');
     if(BLUE_IRIS_URL === '') console.warn('BLUE_IRIS_URL has to be specified in conf.json.');
