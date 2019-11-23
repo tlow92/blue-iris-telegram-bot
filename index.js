@@ -8,7 +8,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const Telegraf = require('telegraf');
 const Telegram = require('telegraf/telegram');
 
-const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = require('./conf.json');
+const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = require('conf.json');
 if(BOT_TOKEN === '' || BLUE_IRIS_URL === '' || BLUE_IRIS_USERNAME === '' || BLUE_IRIS_PASSWORD === '') {
     if(BOT_TOKEN === '') console.warn('BOT_TOKEN has to be specified in conf.json.');
     if(BLUE_IRIS_URL === '') console.warn('BLUE_IRIS_URL has to be specified in conf.json.');
@@ -168,8 +168,8 @@ makeGifFromStreamAndReturnPath = async (camera) => {
             return await sequence(promises)
         });
     }).then(() => {
-        const animation = './images/test.mp4';
-        ffmpeg('./images/image_%d.jpg')
+        const animation = '/images/test.mp4';
+        ffmpeg('/images/image_%d.jpg')
           .save(animation).run();
 
         return animation;
@@ -236,6 +236,7 @@ server.get('/snapshot', (req, res) => {
     }
 });
 
+
 server.listen(PORT, function () {
     console.log(`Blue Iris Alert bot listening on port ${PORT}!`);
     console.log(`1. enter your settings in conf.json and restart`);
@@ -248,4 +249,3 @@ server.listen(PORT, function () {
   });
 
 bot.launch();
-
