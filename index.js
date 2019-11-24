@@ -162,15 +162,19 @@ makeGifFromStreamAndReturnPath = async (camera) => {
             let promises = [];
 
             for(let i = 0; i < 10; i++) {
-                promises.push({name: 'images/image_'+i+'.jpg', url: url});
+                promises.push({name: `${__dirname}/images/image_${i}.jpg`, url: url});
             }
 
             return await sequence(promises)
         });
     }).then(() => {
-        const animation = '/images/test.mp4';
-        ffmpeg('/images/image_%d.jpg')
-          .save(animation).run();
+        const animation = new Promise((resolve, reject) => {
+            const animation = `${__dirname}/images/test.mp4`;
+            ffmpeg(`${__dirname}/images/image_%d.jpg`)
+              .save(animation).on('end', function() {
+                resolve(animation);
+            }).run();
+        })
 
         return animation;
     });
