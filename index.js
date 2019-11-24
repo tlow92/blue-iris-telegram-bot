@@ -190,9 +190,9 @@ makeGifFromStreamAndReturnPath = async (camera) => {
         });
     }).then(() => {
         const animation = new Promise((resolve, reject) => {
-            const animation = `${__dirname}/images/test.mp4`;
+            const animation = `${__dirname}/images/animation.mp4`;
             ffmpeg(`${__dirname}/images/image_%d.jpg`)
-              .withInputFps(10)
+              .withInputFps(2)
               .save(animation)
               .on('end', function() {
                   resolve(animation);
