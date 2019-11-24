@@ -1,4 +1,5 @@
 const fs = require('fs').promises;
+const oldfs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -8,7 +9,27 @@ const ffmpeg = require('fluent-ffmpeg');
 const Telegraf = require('telegraf');
 const Telegram = require('telegraf/telegram');
 
-const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = require('./conf.json');
+readConfFile = () => {
+    try {
+        return JSON.parse(oldfs.readFileSync(`${__dirname}/conf.json`, 'utf8'));
+    } catch {
+        const defaultJson = {
+            "BOT_TOKEN":  "",
+            "BLUE_IRIS_URL":  "",
+            "BLUE_IRIS_USERNAME":  "",
+            "BLUE_IRIS_PASSWORD":  "",
+            "PORT": "3000",
+            "ALLOWED_USER": []
+        };
+
+        fs.writeFile(`${__dirname}/conf.json`, JSON.stringify(defaultJson));
+
+        return defaultJson;
+    }
+};
+
+const { BOT_TOKEN, BLUE_IRIS_URL, BLUE_IRIS_USERNAME, BLUE_IRIS_PASSWORD, PORT } = readConfFile();
+
 if(BOT_TOKEN === '' || BLUE_IRIS_URL === '' || BLUE_IRIS_USERNAME === '' || BLUE_IRIS_PASSWORD === '') {
     if(BOT_TOKEN === '') console.warn('BOT_TOKEN has to be specified in conf.json.');
     if(BLUE_IRIS_URL === '') console.warn('BLUE_IRIS_URL has to be specified in conf.json.');
@@ -185,8 +206,9 @@ getSnapshotAndReturnPath = (camera) => {
     .then((res) => {
         if(res.data.result === 'success') {
             const url = `${BLUE_IRIS_URL}/image/${camera}/?session=${globalSession}`;
-            return downloadImage('snapshot.jpg', url).then(() => {
-                return 'snapshot.jpg'
+            const filename = `${__dirname}/images/snapshot.jpg`;
+            return downloadImage(filename, url).then(() => {
+                return filename;
             })
         } else {
             throw Error()
