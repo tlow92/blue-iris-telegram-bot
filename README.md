@@ -14,7 +14,7 @@ NodeJS
 7. Copy the chat id in the NodeJS command line into the `ALLOWED_USER` section in conf.json e.g. `"ALLOWED_USER": [11111111]`
 8. In Blue Iris add an alert trigger using webhook with the following url `http://ip-of-nodejs-server:3000/snapshot?camera=$CAM`
 
-![](readme-assets/web-request.png | width=100px)
+[[readme-assets/web-request.png | width=100px]]
 
 
 ![](readme-assets/telegram-example.jpg | width=100px)
