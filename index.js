@@ -274,7 +274,6 @@ server.listen(PORT, function () {
     console.log(`4. add the userId to the ALLOWED_USER in conf.json`);
     console.log(`5. restart this bot`);
     console.log(`5. Use {ip}:${PORT}/snapshot?camera=$CAM in blue iris alert web request to get a snapshot`);
-    console.log(`5. Use {ip}:${PORT}/gif?camera=$CAM in blue iris alert web request to get a gif`);
   });
 
 bot.launch();

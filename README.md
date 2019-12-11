@@ -12,3 +12,7 @@ NodeJS
 5. Use npm start to start the telegram bot
 6. Send a message containing /start to the bot in Telegram
 7. Copy the chat id in the NodeJS command line into the `ALLOWED_USER` section in conf.json e.g. `"ALLOWED_USER": [11111111]`
+8. In Blue Iris add an alert trigger using webhook with the following url `http://ip-of-nodejs-server:3000/snapshot?camera=$CAM` [web-request]
+
+
+[web-request]: https://raw.githubusercontent.com/tlow92/blue-iris-telegram-bot/master/readme-assets/web-request.png "web request in blue iris"
