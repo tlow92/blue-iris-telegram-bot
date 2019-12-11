@@ -15,3 +15,6 @@ NodeJS
 8. In Blue Iris add an alert trigger using webhook with the following url `http://ip-of-nodejs-server:3000/snapshot?camera=$CAM`
 
 ![](readme-assets/web-request.png)
+
+
+![](readme-assets/telegram-example.jpg)
