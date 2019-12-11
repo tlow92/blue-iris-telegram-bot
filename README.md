@@ -10,3 +10,5 @@ NodeJS
 3. Use npm install inside project folder to install all the dependencies
 4. Fill out the conf.json file with your settings
 5. Use npm start to start the telegram bot
+6. Send a message containing /start to the bot in Telegram
+7. Copy the chat id in the NodeJS command line into the `ALLOWED_USER` section in conf.json e.g. `"ALLOWED_USER": [11111111]`
