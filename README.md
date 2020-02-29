@@ -2,7 +2,8 @@
 Telegram bot that sends an image or a short gif on alerts triggered in Blue Iris
 
 # Requirements
-NodeJS
+NodeJS (https://nodejs.org/en/)
+FFMPEG for creating gifs (https://ffmpeg.zeranoe.com/builds/)
 
 # Installation
 1. Either use git clone (if you have git installed) or download this repo as zip and unpack it
